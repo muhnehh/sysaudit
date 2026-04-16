@@ -19,6 +19,13 @@ venv/
 # Runtime outputs
 results/logs/*.log
 results/figures/*.png
+results/smoke/
+results/smoke_all/
+results/smoke_llama31_access/
+
+# Downloaded/preprocessed datasets
+data/raw/
+data/processed/
 
 # OS/editor files
 .DS_Store
