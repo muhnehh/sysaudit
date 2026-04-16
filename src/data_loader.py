@@ -10,7 +10,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 from sklearn.model_selection import train_test_split
 
@@ -18,6 +18,11 @@ try:
     from datasets import load_dataset
 except Exception:  # pragma: no cover - optional import path safety
     load_dataset = None
+
+try:
+    import jailbreakbench as jbb
+except Exception:  # pragma: no cover - optional import path safety
+    jbb = None
 
 ADV_BENCH_URL = (
     "https://github.com/llm-attacks/llm-attacks/raw/main/data/advbench/harmful_behaviors.csv"
@@ -40,6 +45,18 @@ ALPACA_URL = (
 ALPACA_URL_CANDIDATES = [
     ALPACA_URL,
     "https://raw.githubusercontent.com/gururise/AlpacaDataCleaned/main/alpaca_data_cleaned.json",
+]
+
+JBB_ARTIFACT_DEFAULT_METHODS = [
+    "PAIR",
+    "GCG",
+    "JBC",
+    "DSN",
+    "prompt_with_random_search",
+]
+JBB_ARTIFACT_DEFAULT_MODELS = [
+    "vicuna-13b-v1.5",
+    "llama-2-7b-chat-hf",
 ]
 
 
@@ -138,6 +155,10 @@ def normalize_whitespace(text: str) -> str:
     return " ".join(text.split())
 
 
+def normalize_label(text: str) -> str:
+    return normalize_whitespace(text).lower().replace(" ", "_")
+
+
 def to_chat_template(prompt: str) -> str:
     cleaned = normalize_whitespace(prompt.strip())
     return f"[INST] {cleaned} [/INST]"
@@ -215,6 +236,79 @@ def load_jailbreakbench(path: Path) -> List[Dict[str, Any]]:
     return records
 
 
+def load_jailbreakbench_from_artifacts(
+    methods: Sequence[str],
+    model_names: Sequence[str],
+    force_download: bool = False,
+    custom_cache_dir: Optional[Path] = None,
+) -> List[Dict[str, Any]]:
+    if jbb is None:
+        raise RuntimeError(
+            "jailbreakbench package is unavailable, cannot load artifacts prompts."
+        )
+
+    records: List[Dict[str, Any]] = []
+    seen_prompts: Set[str] = set()
+    errors: List[str] = []
+
+    for model_name in model_names:
+        for method in methods:
+            try:
+                artifact = jbb.read_artifact(
+                    method=method,
+                    model_name=model_name,
+                    attack_type=None,
+                    custom_cache_dir=custom_cache_dir,
+                    force_download=force_download,
+                )
+            except Exception as exc:
+                errors.append(f"{method}/{model_name}: {exc}")
+                continue
+
+            artifact_attack_type = "unknown"
+            if getattr(artifact, "parameters", None) is not None:
+                artifact_attack_type = str(
+                    getattr(artifact.parameters, "attack_type", "unknown")
+                )
+
+            for item in artifact.jailbreaks:
+                prompt = str(getattr(item, "prompt", "") or "").strip()
+                goal = str(getattr(item, "goal", "") or "").strip()
+                if not prompt:
+                    continue
+
+                normalized_prompt = normalize_whitespace(prompt)
+                if normalized_prompt in seen_prompts:
+                    continue
+                seen_prompts.add(normalized_prompt)
+
+                method_label = normalize_label(method)
+                attack_label = normalize_label(artifact_attack_type)
+
+                records.append(
+                    {
+                        "raw_prompt": normalized_prompt,
+                        "label": 1,
+                        "attack_type": f"artifact_{method_label}_{attack_label}",
+                        "source": "jailbreakbench",
+                        "artifact_method": method,
+                        "artifact_model": model_name,
+                        "artifact_attack_type": artifact_attack_type,
+                        "goal": normalize_whitespace(goal) if goal else "",
+                    }
+                )
+
+    if not records:
+        if errors:
+            raise RuntimeError(
+                "No jailbreak prompts were loaded from JailbreakBench artifacts. "
+                + " | ".join(errors[:6])
+            )
+        raise RuntimeError("No jailbreak prompts were loaded from JailbreakBench artifacts.")
+
+    return records
+
+
 def load_jailbreakbench_from_hf() -> List[Dict[str, Any]]:
     if load_dataset is None:
         raise RuntimeError(
@@ -287,6 +381,14 @@ def expand_jailbreakbench_records(
 
     if not records:
         raise ValueError("Cannot expand an empty JailbreakBench pool.")
+
+    if any("artifact_method" in row for row in records):
+        rng = random.Random(seed)
+        expanded = [dict(row) for row in records]
+        while len(expanded) < target_count:
+            expanded.append(dict(rng.choice(records)))
+        rng.shuffle(expanded)
+        return expanded[:target_count]
 
     templates = [
         (
@@ -429,6 +531,9 @@ def prepare_datasets(
     jailbreakbench_count: int = 500,
     seed: int = 42,
     force_download: bool = False,
+    use_jbb_artifacts: bool = True,
+    jbb_artifact_methods: Optional[Sequence[str]] = None,
+    jbb_artifact_models: Optional[Sequence[str]] = None,
 ) -> Dict[str, int]:
     advbench_file = raw_dir / "advbench" / "harmful_behaviors.csv"
     jailbreakbench_file = raw_dir / "jailbreakbench" / "jailbreak_prompts.csv"
@@ -440,16 +545,30 @@ def prepare_datasets(
         force=force_download,
     )
 
+    methods = list(jbb_artifact_methods or JBB_ARTIFACT_DEFAULT_METHODS)
+    models = list(jbb_artifact_models or JBB_ARTIFACT_DEFAULT_MODELS)
+
     jailbreakbench_pool: List[Dict[str, Any]] = []
-    try:
-        download_from_candidates(
-            JAILBREAK_BENCH_URL_CANDIDATES,
-            jailbreakbench_file,
-            force=force_download,
-        )
-        jailbreakbench_pool = load_jailbreakbench(jailbreakbench_file)
-    except RuntimeError:
-        jailbreakbench_pool = load_jailbreakbench_from_hf()
+    if use_jbb_artifacts:
+        try:
+            jailbreakbench_pool = load_jailbreakbench_from_artifacts(
+                methods=methods,
+                model_names=models,
+                force_download=force_download,
+            )
+        except Exception:
+            jailbreakbench_pool = []
+
+    if not jailbreakbench_pool:
+        try:
+            download_from_candidates(
+                JAILBREAK_BENCH_URL_CANDIDATES,
+                jailbreakbench_file,
+                force=force_download,
+            )
+            jailbreakbench_pool = load_jailbreakbench(jailbreakbench_file)
+        except RuntimeError:
+            jailbreakbench_pool = load_jailbreakbench_from_hf()
 
     benign_pool: List[Dict[str, Any]] = []
     try:
@@ -527,11 +646,31 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Re-download source files even if they exist.",
     )
+    parser.add_argument(
+        "--disable-jbb-artifacts",
+        action="store_true",
+        help="Disable jailbreakbench artifact loading and use fallback sources only.",
+    )
+    parser.add_argument(
+        "--jbb-artifact-methods",
+        type=str,
+        default=",".join(JBB_ARTIFACT_DEFAULT_METHODS),
+        help="Comma-separated artifact methods (e.g., PAIR,GCG,JBC,DSN,prompt_with_random_search).",
+    )
+    parser.add_argument(
+        "--jbb-artifact-models",
+        type=str,
+        default=",".join(JBB_ARTIFACT_DEFAULT_MODELS),
+        help="Comma-separated artifact model names.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    artifact_methods = [x.strip() for x in args.jbb_artifact_methods.split(",") if x.strip()]
+    artifact_models = [x.strip() for x in args.jbb_artifact_models.split(",") if x.strip()]
+
     stats = prepare_datasets(
         raw_dir=args.raw_dir,
         processed_dir=args.processed_dir,
@@ -540,6 +679,9 @@ def main() -> None:
         jailbreakbench_count=args.jailbreakbench_count,
         seed=args.seed,
         force_download=args.force_download,
+        use_jbb_artifacts=(not args.disable_jbb_artifacts),
+        jbb_artifact_methods=artifact_methods,
+        jbb_artifact_models=artifact_models,
     )
 
     print("Prepared datasets successfully:")

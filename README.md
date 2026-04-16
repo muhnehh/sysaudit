@@ -74,7 +74,7 @@ Example open model for smoke runs:
 The data loader downloads and preprocesses:
 
 - AdvBench harmful prompts
-- JailbreakBench prompts
+- JailbreakBench artifact prompts via the official `jailbreakbench` package
 - Alpaca benign instructions
 
 Then it creates:
@@ -94,8 +94,12 @@ python -m src.data_loader \
   --benign-count 500 \
   --advbench-count 500 \
   --jailbreakbench-count 500 \
+  --jbb-artifact-methods PAIR,GCG,JBC,DSN,prompt_with_random_search \
+  --jbb-artifact-models vicuna-13b-v1.5,llama-2-7b-chat-hf \
   --seed 42
 ```
+
+If artifact loading fails due network issues, the loader automatically falls back to CSV/Hugging Face sources.
 
 ## Run Full Benchmark
 
@@ -134,6 +138,12 @@ New execution controls in `src.run_benchmark`:
 - `--methods`: comma-separated detector subset
 - `--train-limit`, `--val-limit`, `--test-limit`: optional capped record counts for fast runs
 - `--hf-token`: optional token for gated model repos
+
+New data controls in `src.data_loader`:
+
+- `--jbb-artifact-methods`: comma-separated artifact attack methods
+- `--jbb-artifact-models`: comma-separated target models for artifact retrieval
+- `--disable-jbb-artifacts`: force fallback data paths
 
 ## Metrics Produced
 
