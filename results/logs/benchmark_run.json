@@ -23,7 +23,7 @@
   },
   {
     "method": "jlt",
-    "iid_threshold": 0.011618013493716717,
+    "iid_threshold": 0.013299924321472645,
     "ood_threshold": 0.0713392049074173,
     "train_size": 1049,
     "val_size": 225,
@@ -34,7 +34,7 @@
   },
   {
     "method": "jbshield",
-    "iid_threshold": 0.399518221616745,
+    "iid_threshold": 0.4469303488731384,
     "ood_threshold": 0.48949524760246277,
     "train_size": 1049,
     "val_size": 225,
