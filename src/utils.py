@@ -89,6 +89,7 @@ class RuntimeConfig:
     max_memory_gb: int = 6
     device_map: str = "auto"
     trust_remote_code: bool = False
+    hf_token: Optional[str] = None
 
 
 class HiddenStateRuntime:
@@ -101,7 +102,20 @@ class HiddenStateRuntime:
         self._load_model_and_tokenizer()
 
     def _load_model_and_tokenizer(self) -> None:
-        self.tokenizer = AutoTokenizer.from_pretrained(self.config.model_name)
+        try:
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                self.config.model_name,
+                token=self.config.hf_token,
+            )
+        except OSError as exc:
+            message = str(exc).lower()
+            if "gated repo" in message or "401" in message or "access" in message:
+                raise RuntimeError(
+                    "Model access denied. Authenticate with Hugging Face (huggingface-cli login) "
+                    "or pass an accessible model via --model-name."
+                ) from exc
+            raise
+
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
@@ -118,18 +132,28 @@ class HiddenStateRuntime:
                 bnb_4bit_quant_type="nf4",
             )
             model_kwargs["quantization_config"] = quant_config
-            model_kwargs["torch_dtype"] = torch.float16
+            model_kwargs["dtype"] = torch.float16
             model_kwargs["max_memory"] = {
                 0: f"{self.config.max_memory_gb}GiB",
                 "cpu": "48GiB",
             }
         else:
-            model_kwargs["torch_dtype"] = torch.float32
+            model_kwargs["dtype"] = torch.float32
 
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.config.model_name,
-            **model_kwargs,
-        )
+        try:
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.config.model_name,
+                token=self.config.hf_token,
+                **model_kwargs,
+            )
+        except OSError as exc:
+            message = str(exc).lower()
+            if "gated repo" in message or "401" in message or "access" in message:
+                raise RuntimeError(
+                    "Model access denied. Authenticate with Hugging Face (huggingface-cli login) "
+                    "or pass an accessible model via --model-name."
+                ) from exc
+            raise
         self.model.eval()
 
     def _tokenize(self, prompt: str) -> Dict[str, torch.Tensor]:
@@ -145,6 +169,15 @@ class HiddenStateRuntime:
         )
         device = _get_input_device(self.model)
         return {k: v.to(device) for k, v in encoded.items()}
+
+    @staticmethod
+    def _resolve_layer_index(layer: int, num_hidden_states: int) -> int:
+        if num_hidden_states <= 0:
+            raise ValueError("num_hidden_states must be positive.")
+
+        index = layer if layer >= 0 else num_hidden_states + layer
+        index = max(0, min(num_hidden_states - 1, index))
+        return index
 
     def prefill_hidden_states(
         self,
@@ -168,7 +201,7 @@ class HiddenStateRuntime:
 
         extracted: Dict[int, np.ndarray] = {}
         for layer in layers:
-            index = layer if layer >= 0 else len(hidden_states) + layer
+            index = self._resolve_layer_index(layer, len(hidden_states))
             layer_tensor = hidden_states[index][0, -1, :]
             extracted[layer] = (
                 layer_tensor.detach().float().cpu().numpy().astype(np.float32)
@@ -210,7 +243,7 @@ class HiddenStateRuntime:
             if outputs.hidden_states is None:
                 break
 
-            index = layer if layer >= 0 else len(outputs.hidden_states) + layer
+            index = self._resolve_layer_index(layer, len(outputs.hidden_states))
             token_hidden = outputs.hidden_states[index][0, -1, :]
             trajectory.append(token_hidden.detach().float().cpu().numpy().astype(np.float32))
 

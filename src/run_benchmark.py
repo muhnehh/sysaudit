@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Sequence, Tuple
 
@@ -26,6 +27,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run systematic jailbreak detector benchmark.")
 
     parser.add_argument("--model-name", type=str, default="meta-llama/Llama-3.1-8B-Instruct")
+    parser.add_argument(
+        "--hf-token",
+        type=str,
+        default=None,
+        help="Optional Hugging Face token for gated models.",
+    )
     parser.add_argument("--max-context-tokens", type=int, default=2048)
     parser.add_argument("--max-memory-gb", type=int, default=6)
     parser.add_argument("--device-map", type=str, default="auto")
@@ -40,6 +47,30 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--benign-count", type=int, default=500)
     parser.add_argument("--advbench-count", type=int, default=500)
     parser.add_argument("--jailbreakbench-count", type=int, default=500)
+    parser.add_argument(
+        "--methods",
+        type=str,
+        default="refusal_direction,trajguard,jlt,jbshield",
+        help="Comma-separated methods to run.",
+    )
+    parser.add_argument(
+        "--train-limit",
+        type=int,
+        default=0,
+        help="Optional max number of train records to use (0 means full set).",
+    )
+    parser.add_argument(
+        "--val-limit",
+        type=int,
+        default=0,
+        help="Optional max number of validation records to use (0 means full set).",
+    )
+    parser.add_argument(
+        "--test-limit",
+        type=int,
+        default=0,
+        help="Optional max number of test records to use (0 means full set).",
+    )
 
     return parser.parse_args()
 
@@ -49,6 +80,22 @@ def _load_split(path: Path) -> List[Dict[str, Any]]:
     if not path.exists():
         raise FileNotFoundError(f"Required split not found: {path}")
     return read_jsonl(path)
+
+
+def _limit_records(
+    records: Sequence[Mapping[str, Any]],
+    limit: int,
+    seed: int,
+) -> List[Dict[str, Any]]:
+    output = [dict(r) for r in records]
+    if limit <= 0 or len(output) <= limit:
+        return output
+
+    rng = random.Random(seed)
+    indices = list(range(len(output)))
+    rng.shuffle(indices)
+    selected = [output[i] for i in indices[:limit]]
+    return selected
 
 
 
@@ -164,6 +211,10 @@ def main() -> None:
     val_records = _load_split(args.processed_dir / "val_prompts.jsonl")
     test_records = _load_split(args.processed_dir / "test_prompts.jsonl")
 
+    train_records = _limit_records(train_records, args.train_limit, seed=args.seed + 101)
+    val_records = _limit_records(val_records, args.val_limit, seed=args.seed + 102)
+    test_records = _limit_records(test_records, args.test_limit, seed=args.seed + 103)
+
     adv_train, adv_val, ood_test = _split_for_ood_protocol(
         train_records=train_records,
         val_records=val_records,
@@ -173,16 +224,25 @@ def main() -> None:
     runtime = HiddenStateRuntime(
         RuntimeConfig(
             model_name=args.model_name,
+            hf_token=args.hf_token,
             max_context_tokens=args.max_context_tokens,
             max_memory_gb=args.max_memory_gb,
             device_map=args.device_map,
         )
     )
 
-    detector_factories = _build_detector_factories(
+    detector_factories_all = _build_detector_factories(
         runtime=runtime,
         artifacts_dir=args.results_dir / "logs" / "artifacts",
     )
+    requested_methods = [x.strip() for x in args.methods.split(",") if x.strip()]
+    detector_factories = {
+        name: make for name, make in detector_factories_all.items() if name in requested_methods
+    }
+    if not detector_factories:
+        raise ValueError(
+            f"No valid methods selected. Requested={requested_methods}, available={list(detector_factories_all.keys())}"
+        )
 
     metric_rows: List[Dict[str, Any]] = []
     run_logs: List[Dict[str, Any]] = []

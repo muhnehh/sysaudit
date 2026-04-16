@@ -60,7 +60,14 @@ Default model in code:
 
 - `meta-llama/Llama-3.1-8B-Instruct`
 
-If your environment cannot access gated weights, pass another compatible causal LM at runtime with `--model-name`.
+If your environment cannot access gated weights, either:
+
+- authenticate with Hugging Face (`huggingface-cli login`) and optionally pass `--hf-token`, or
+- pass another compatible causal LM at runtime with `--model-name`.
+
+Example open model for smoke runs:
+
+- `sshleifer/tiny-gpt2`
 
 ## Data Preparation
 
@@ -99,10 +106,34 @@ python -m src.run_benchmark \
   --processed-dir data/processed \
   --results-dir results \
   --model-name meta-llama/Llama-3.1-8B-Instruct \
+  --hf-token <your_hf_token_if_needed> \
   --max-context-tokens 2048 \
   --max-memory-gb 6 \
   --seed 42
 ```
+
+## Run Smoke Benchmark (Fast Validation)
+
+Use this before long full runs to validate end-to-end execution:
+
+```bash
+python -m src.run_benchmark \
+  --processed-dir data/processed \
+  --results-dir results/smoke \
+  --model-name sshleifer/tiny-gpt2 \
+  --methods refusal_direction,trajguard,jlt,jbshield \
+  --train-limit 8 \
+  --val-limit 6 \
+  --test-limit 6 \
+  --max-context-tokens 256 \
+  --seed 42
+```
+
+New execution controls in `src.run_benchmark`:
+
+- `--methods`: comma-separated detector subset
+- `--train-limit`, `--val-limit`, `--test-limit`: optional capped record counts for fast runs
+- `--hf-token`: optional token for gated model repos
 
 ## Metrics Produced
 
@@ -148,6 +179,12 @@ Cross-dataset protocol is included:
   - Reduce `--max-context-tokens`.
   - Use a smaller model.
   - Ensure CUDA and bitsandbytes are correctly installed.
+- Gated model errors (401 / access denied):
+  - Run `huggingface-cli login`.
+  - Pass `--hf-token`.
+  - Or switch to an open model via `--model-name`.
+- Dataset download interruptions:
+  - Re-run `python -m src.data_loader` (the loader now retries URLs and falls back to Hugging Face datasets).
 - Slow runtime:
   - Reduce sample counts during smoke testing.
   - Lower TrajGuard `max_new_tokens` in code for quick checks.

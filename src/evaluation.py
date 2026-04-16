@@ -162,7 +162,14 @@ def plot_latency_bars(metrics_df: pd.DataFrame, output_path: Path, dataset_name:
         return
 
     plt.figure(figsize=(8, 5))
-    sns.barplot(data=subset, x="method", y="latency_ms_avg", palette="crest")
+    sns.barplot(
+        data=subset,
+        x="method",
+        y="latency_ms_avg",
+        hue="method",
+        palette="crest",
+        legend=False,
+    )
     plt.ylabel("Average Detection Latency (ms)")
     plt.xlabel("Method")
     plt.title(f"Latency Comparison ({dataset_name})")
