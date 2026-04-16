@@ -1,0 +1,26 @@
+# Python cache and build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Local model and cache artifacts
+.huggingface/
+.cache/
+
+# Runtime outputs
+results/logs/*.log
+results/figures/*.png
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
