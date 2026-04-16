@@ -1,0 +1,46 @@
+[
+  {
+    "method": "refusal_direction",
+    "iid_threshold": -1.0000001192092896,
+    "ood_threshold": -1.0000001192092896,
+    "train_size": 1049,
+    "val_size": 225,
+    "test_size": 226,
+    "adv_train_size": 691,
+    "adv_val_size": 155,
+    "ood_test_size": 147
+  },
+  {
+    "method": "trajguard",
+    "iid_threshold": -2.3332672870295634e-08,
+    "ood_threshold": -2.3332672870295634e-08,
+    "train_size": 1049,
+    "val_size": 225,
+    "test_size": 226,
+    "adv_train_size": 691,
+    "adv_val_size": 155,
+    "ood_test_size": 147
+  },
+  {
+    "method": "jlt",
+    "iid_threshold": 0.011618013493716717,
+    "ood_threshold": 0.0713392049074173,
+    "train_size": 1049,
+    "val_size": 225,
+    "test_size": 226,
+    "adv_train_size": 691,
+    "adv_val_size": 155,
+    "ood_test_size": 147
+  },
+  {
+    "method": "jbshield",
+    "iid_threshold": 0.399518221616745,
+    "ood_threshold": 0.48949524760246277,
+    "train_size": 1049,
+    "val_size": 225,
+    "test_size": 226,
+    "adv_train_size": 691,
+    "adv_val_size": 155,
+    "ood_test_size": 147
+  }
+]

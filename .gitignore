@@ -19,6 +19,7 @@ venv/
 # Runtime outputs
 results/logs/*.log
 results/figures/*.png
+results/logs/artifacts/*.npy
 results/smoke/
 results/smoke_all/
 results/smoke_llama31_access/
