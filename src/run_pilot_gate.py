@@ -67,6 +67,32 @@ def parse_args() -> argparse.Namespace:
         help="Return non-zero exit code if the pilot gate fails.",
     )
 
+    parser.add_argument(
+        "--auto-cpu-safe-fallback",
+        dest="auto_cpu_safe_fallback",
+        action="store_true",
+        default=True,
+        help="Automatically switch to a CPU-safe model when CUDA is unavailable and model is large.",
+    )
+    parser.add_argument(
+        "--no-auto-cpu-safe-fallback",
+        dest="auto_cpu_safe_fallback",
+        action="store_false",
+        help="Disable automatic CPU-safe model fallback.",
+    )
+    parser.add_argument(
+        "--cpu-safe-model-name",
+        type=str,
+        default="sshleifer/tiny-gpt2",
+        help="Model to use when CPU-safe fallback is activated.",
+    )
+    parser.add_argument(
+        "--cpu-safe-max-context-tokens",
+        type=int,
+        default=256,
+        help="Max context tokens to enforce during CPU-safe fallback.",
+    )
+
     return parser.parse_args()
 
 
@@ -162,6 +188,30 @@ def _build_benchmark_command(
     return command
 
 
+def _cuda_available() -> bool:
+    try:
+        import torch
+
+        return bool(torch.cuda.is_available())
+    except Exception:
+        return False
+
+
+def _is_likely_large_model(model_name: str) -> bool:
+    key = (model_name or "").lower()
+    large_hints = (
+        "7b",
+        "8b",
+        "13b",
+        "34b",
+        "70b",
+        "llama-2",
+        "llama-3",
+        "mixtral",
+    )
+    return any(h in key for h in large_hints)
+
+
 def _evaluate_method_gate(
     metrics_df: pd.DataFrame,
     method_name: str,
@@ -238,16 +288,51 @@ def main() -> None:
     ensure_dir(args.results_dir)
     ensure_dir(args.results_dir / "logs")
 
-    benchmark_command = _build_benchmark_command(
+    primary_benchmark_command = _build_benchmark_command(
         args=args,
         train_limit=train_limit,
         val_limit=val_limit,
         test_limit=test_limit,
     )
 
+    benchmark_command = list(primary_benchmark_command)
+    fallback_used = False
+    fallback_reason = ""
+
+    cuda_available = _cuda_available()
+    if (
+        args.auto_cpu_safe_fallback
+        and not cuda_available
+        and _is_likely_large_model(args.model_name)
+    ):
+        fallback_used = True
+        fallback_reason = (
+            "CUDA unavailable with a likely large model; switched to CPU-safe fallback model."
+        )
+
+        fallback_ns = argparse.Namespace(**vars(args))
+        fallback_ns.model_name = args.cpu_safe_model_name
+        fallback_ns.max_context_tokens = min(
+            args.max_context_tokens,
+            max(1, int(args.cpu_safe_max_context_tokens)),
+        )
+
+        benchmark_command = _build_benchmark_command(
+            args=fallback_ns,
+            train_limit=train_limit,
+            val_limit=val_limit,
+            test_limit=test_limit,
+        )
+
     print("Running pilot benchmark with limits:")
     print(f"  train={train_limit}, val={val_limit}, test={test_limit}")
     print(f"  methods={methods}")
+    if fallback_used:
+        print(f"  cpu_safe_fallback: enabled ({fallback_reason})")
+        print(f"  fallback_model: {args.cpu_safe_model_name}")
+        print(
+            f"  fallback_max_context_tokens: {min(args.max_context_tokens, max(1, int(args.cpu_safe_max_context_tokens)))}"
+        )
 
     subprocess.run(benchmark_command, check=True)
 
@@ -299,7 +384,10 @@ def main() -> None:
         "methods": methods,
         "method_results": method_gate_rows,
         "metrics_csv": str(metrics_path),
+        "primary_benchmark_command": primary_benchmark_command,
         "benchmark_command": benchmark_command,
+        "fallback_used": fallback_used,
+        "fallback_reason": fallback_reason,
     }
 
     report_path = args.results_dir / "logs" / "pilot_gate_report.json"
