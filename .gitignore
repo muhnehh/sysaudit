@@ -17,9 +17,12 @@ venv/
 .cache/
 
 # Runtime outputs
-results/logs/*.log
-results/figures/*.png
-results/logs/artifacts/*.npy
+results/**/logs/*.log
+results/**/figures/*.png
+results/**/logs/artifacts/*.npy
+results/llama31_smoke/
+results/pilot_gate_qwen05/
+results/pilot_gate_repro/
 results/smoke/
 results/smoke_all/
 results/smoke_llama31_access/

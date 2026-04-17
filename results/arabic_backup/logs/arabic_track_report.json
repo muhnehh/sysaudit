@@ -1,0 +1,20 @@
+{
+  "status": "skipped",
+  "reason": "Insufficient Arabic-script prompts for backup track (train=0, val=0, test=0, min_per_split=4).",
+  "criteria": {
+    "min_arabic_char_ratio": 0.15,
+    "min_per_split": 4,
+    "max_per_split": 0
+  },
+  "counts": {
+    "train": 0,
+    "val": 0,
+    "test": 0
+  },
+  "methods": [
+    "refusal_direction",
+    "trajguard",
+    "jlt",
+    "jbshield"
+  ]
+}
