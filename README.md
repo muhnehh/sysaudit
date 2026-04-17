@@ -133,6 +133,51 @@ python -m src.run_benchmark \
   --seed 42
 ```
 
+## Phase 2: Pilot Go/No-Go Gate
+
+Run a constrained pilot (default total budget: 50 prompts split across train/val/test),
+then auto-generate per-method and overall gate decisions:
+
+```bash
+python -m src.run_pilot_gate \
+  --processed-dir data/processed \
+  --results-dir results/pilot_gate \
+  --model-name meta-llama/Llama-3.1-8B-Instruct \
+  --hf-token <your_hf_token_if_needed> \
+  --pilot-size 50 \
+  --min-iid-auroc 0.70 \
+  --max-auroc-drop 0.25 \
+  --max-latency-ms 2500 \
+  --max-memory-overhead-mb 2048 \
+  --fail-on-gate-fail
+```
+
+Outputs:
+
+- `results/pilot_gate/metrics.csv`
+- `results/pilot_gate/logs/pilot_gate_report.json`
+- `results/pilot_gate/logs/pilot_gate_summary.csv`
+
+## Phase 3: Arabic Backup Track
+
+Run a backup benchmark track using Arabic-script prompts discovered in processed splits.
+If insufficient Arabic prompts exist, the runner emits a skipped report (or fails in strict mode).
+
+```bash
+python -m src.run_arabic_backup \
+  --processed-dir data/processed \
+  --results-dir results/arabic_backup \
+  --model-name meta-llama/Llama-3.1-8B-Instruct \
+  --hf-token <your_hf_token_if_needed> \
+  --min-arabic-char-ratio 0.15 \
+  --min-per-split 4
+```
+
+Outputs:
+
+- `results/arabic_backup/metrics.csv` (if completed)
+- `results/arabic_backup/logs/arabic_track_report.json`
+
 New execution controls in `src.run_benchmark`:
 
 - `--methods`: comma-separated detector subset
