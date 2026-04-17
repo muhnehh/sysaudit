@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import random
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
@@ -41,11 +42,61 @@ def write_jsonl(records: Iterable[Mapping[str, Any]], path: Path) -> None:
             f.write(json.dumps(dict(record), ensure_ascii=False) + "\n")
 
 
-def to_chat_prompt(prompt: str) -> str:
-    prompt = prompt.strip()
-    if "[INST]" in prompt and "[/INST]" in prompt:
-        return prompt
-    return f"[INST] {' '.join(prompt.split())} [/INST]"
+def _normalize_whitespace(text: str) -> str:
+    return " ".join(text.split())
+
+
+def _strip_known_chat_wrappers(prompt: str) -> str:
+    text = prompt.strip()
+
+    inst_match = re.search(r"\[INST\](.*?)\[/INST\]", text, flags=re.IGNORECASE | re.DOTALL)
+    if inst_match:
+        text = inst_match.group(1)
+
+    gemma_match = re.search(
+        r"<start_of_turn>user\s*(.*?)\s*<end_of_turn>",
+        text,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if gemma_match:
+        text = gemma_match.group(1)
+
+    return _normalize_whitespace(text)
+
+
+def to_chat_prompt(
+    prompt: str,
+    model_name: Optional[str] = None,
+    tokenizer: Optional[Any] = None,
+) -> str:
+    raw_prompt = prompt.strip()
+    user_text = _strip_known_chat_wrappers(raw_prompt)
+
+    if tokenizer is not None and hasattr(tokenizer, "apply_chat_template"):
+        try:
+            rendered = tokenizer.apply_chat_template(
+                [{"role": "user", "content": user_text}],
+                tokenize=False,
+                add_generation_prompt=True,
+            )
+            if isinstance(rendered, str) and rendered.strip():
+                return rendered
+        except Exception:
+            pass
+
+    model_key = (model_name or "").lower()
+    if "gemma" in model_key:
+        if "<start_of_turn>user" in raw_prompt and "<start_of_turn>model" in raw_prompt:
+            return raw_prompt
+        return (
+            f"<start_of_turn>user\n{user_text}<end_of_turn>\n"
+            f"<start_of_turn>model\n"
+        )
+
+    if "[INST]" in raw_prompt and "[/INST]" in raw_prompt:
+        return raw_prompt
+
+    return f"[INST] {user_text} [/INST]"
 
 
 def clear_cuda_cache() -> None:
@@ -88,6 +139,7 @@ class RuntimeConfig:
     max_context_tokens: int = 2048
     max_memory_gb: int = 6
     device_map: str = "auto"
+    quantize_4bit: bool = True
     trust_remote_code: bool = False
     hf_token: Optional[str] = None
 
@@ -99,6 +151,7 @@ class HiddenStateRuntime:
         self.config = config or RuntimeConfig()
         self.tokenizer = None
         self.model = None
+        self._cpu_peak_mb = 0.0
         self._load_model_and_tokenizer()
 
     def _load_model_and_tokenizer(self) -> None:
@@ -122,9 +175,10 @@ class HiddenStateRuntime:
         model_kwargs: Dict[str, Any] = {
             "device_map": self.config.device_map,
             "trust_remote_code": self.config.trust_remote_code,
+            "low_cpu_mem_usage": True,
         }
 
-        if torch.cuda.is_available():
+        if torch.cuda.is_available() and self.config.quantize_4bit:
             quant_config = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_compute_dtype=torch.float16,
@@ -137,8 +191,28 @@ class HiddenStateRuntime:
                 0: f"{self.config.max_memory_gb}GiB",
                 "cpu": "48GiB",
             }
+        elif torch.cuda.is_available():
+            model_kwargs["dtype"] = torch.float16
+            model_kwargs["max_memory"] = {
+                0: f"{self.config.max_memory_gb}GiB",
+                "cpu": "48GiB",
+            }
         else:
-            model_kwargs["dtype"] = torch.float32
+            cpu_cap_gb = max(1, int(self.config.max_memory_gb))
+            offload_dir = Path(".cache") / "hf_offload"
+            offload_dir.mkdir(parents=True, exist_ok=True)
+
+            # On CPU-only machines, force auto placement so Accelerate can spill to disk.
+            if str(self.config.device_map).lower() == "cpu":
+                model_kwargs["device_map"] = "auto"
+
+            model_kwargs["dtype"] = "auto"
+            model_kwargs["offload_folder"] = str(offload_dir)
+            model_kwargs["offload_state_dict"] = True
+            model_kwargs["offload_buffers"] = True
+            model_kwargs["max_memory"] = {
+                "cpu": f"{cpu_cap_gb}GiB",
+            }
 
         try:
             self.model = AutoModelForCausalLM.from_pretrained(
@@ -160,7 +234,11 @@ class HiddenStateRuntime:
         if self.tokenizer is None:
             raise RuntimeError("Tokenizer is not initialized.")
 
-        prompt = to_chat_prompt(prompt)
+        prompt = to_chat_prompt(
+            prompt,
+            model_name=self.config.model_name,
+            tokenizer=self.tokenizer,
+        )
         encoded = self.tokenizer(
             prompt,
             truncation=True,
@@ -212,6 +290,31 @@ class HiddenStateRuntime:
 
     def prefill_hidden_state(self, prompt: str, layer: int) -> np.ndarray:
         return self.prefill_hidden_states(prompt, [layer])[layer]
+
+    def num_hidden_layers(self) -> int:
+        if self.model is None:
+            raise RuntimeError("Model is not initialized.")
+
+        model_config = getattr(self.model, "config", None)
+        num_layers = getattr(model_config, "num_hidden_layers", None)
+        if num_layers is None:
+            raise RuntimeError("Unable to determine model hidden layer count from config.")
+        return int(num_layers)
+
+    @staticmethod
+    def _process_rss_mb() -> float:
+        try:
+            import psutil  # Imported lazily to keep runtime dependency soft.
+
+            process = psutil.Process()
+            return float(process.memory_info().rss / (1024 * 1024))
+        except Exception:
+            return 0.0
+
+    def memory_allocated_mb(self) -> float:
+        if torch.cuda.is_available():
+            return float(torch.cuda.memory_allocated() / (1024 * 1024))
+        return self._process_rss_mb()
 
     def generate_hidden_trajectory(
         self,
@@ -266,6 +369,17 @@ class HiddenStateRuntime:
     def reset_peak_memory_stats(self) -> None:
         if torch.cuda.is_available():
             torch.cuda.reset_peak_memory_stats()
+            return
+        self._cpu_peak_mb = self._process_rss_mb()
+
+    def peak_memory_mb(self) -> float:
+        if torch.cuda.is_available():
+            return float(torch.cuda.max_memory_allocated() / (1024 * 1024))
+
+        current_mb = self._process_rss_mb()
+        if current_mb > self._cpu_peak_mb:
+            self._cpu_peak_mb = current_mb
+        return self._cpu_peak_mb
 
     def cuda_peak_memory_mb(self) -> float:
         if not torch.cuda.is_available():

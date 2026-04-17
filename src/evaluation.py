@@ -63,14 +63,15 @@ def run_detector(
         label = int(row["label"])
 
         runtime.reset_peak_memory_stats()
-        before_mb = runtime.cuda_memory_allocated_mb()
+        before_mb = runtime.memory_allocated_mb()
 
         start = time.perf_counter()
         score = float(detector.detect(prompt))
         latency_ms = (time.perf_counter() - start) * 1000.0
 
-        peak_mb = runtime.cuda_peak_memory_mb()
-        delta_mb = max(0.0, peak_mb - before_mb)
+        after_mb = runtime.memory_allocated_mb()
+        peak_mb = runtime.peak_memory_mb()
+        delta_mb = max(0.0, max(after_mb, peak_mb) - before_mb)
 
         labels.append(label)
         scores.append(score)
@@ -135,6 +136,7 @@ def plot_roc_curves(
 ) -> None:
     ensure_dir(output_path.parent)
     plt.figure(figsize=(8, 6))
+    has_curve = False
 
     for run in runs:
         if len(np.unique(run.labels)) < 2:
@@ -142,12 +144,14 @@ def plot_roc_curves(
         fpr, tpr, _ = roc_curve(run.labels, run.scores)
         curve_auc = auc(fpr, tpr)
         plt.plot(fpr, tpr, label=f"{run.method_name} (AUC={curve_auc:.3f})")
+        has_curve = True
 
     plt.plot([0, 1], [0, 1], linestyle="--", color="gray", linewidth=1)
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
     plt.title(title)
-    plt.legend()
+    if has_curve:
+        plt.legend()
     plt.tight_layout()
     plt.savefig(output_path)
     plt.close()
@@ -215,6 +219,9 @@ def plot_generalization_heatmap(
         return
 
     matrix = pd.DataFrame(rows).set_index("method")[["iid_auroc", "ood_auroc", "auroc_drop"]]
+    matrix_values = matrix.to_numpy(dtype=float)
+    if np.isnan(matrix_values).all():
+        return
 
     plt.figure(figsize=(7, max(3, len(matrix) * 0.7)))
     sns.heatmap(matrix, annot=True, cmap="mako", fmt=".3f", cbar=True)

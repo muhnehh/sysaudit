@@ -6,7 +6,6 @@ import random
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Sequence, Tuple
 
-from src.data_loader import prepare_datasets
 from src.evaluation import (
     evaluate_and_summarize,
     plot_generalization_heatmap,
@@ -36,6 +35,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-context-tokens", type=int, default=2048)
     parser.add_argument("--max-memory-gb", type=int, default=6)
     parser.add_argument("--device-map", type=str, default="auto")
+    parser.add_argument(
+        "--disable-4bit",
+        action="store_true",
+        help="Disable 4-bit quantization when CUDA is available.",
+    )
 
     parser.add_argument("--raw-dir", type=Path, default=Path("data/raw"))
     parser.add_argument("--processed-dir", type=Path, default=Path("data/processed"))
@@ -134,19 +138,38 @@ def _split_for_ood_protocol(
 def _build_detector_factories(
     runtime: HiddenStateRuntime,
     artifacts_dir: Path,
-) -> Dict[str, Callable[[], BaseDetector]]:
+) -> Tuple[Dict[str, Callable[[], BaseDetector]], Dict[str, Dict[str, Any]], int]:
     ensure_dir(artifacts_dir)
 
-    return {
+    num_hidden_layers = runtime.num_hidden_layers()
+
+    def _scaled_layer(ratio: float) -> int:
+        scaled = int(round(num_hidden_layers * ratio))
+        return max(1, min(num_hidden_layers, scaled))
+
+    def _scaled_layers(ratios: Sequence[float]) -> Tuple[int, ...]:
+        layers = sorted({_scaled_layer(ratio) for ratio in ratios})
+        if not layers:
+            return (1,)
+        return tuple(layers)
+
+    method_layer_config: Dict[str, Dict[str, Any]] = {
+        "refusal_direction": {"layer": _scaled_layer(0.63)},
+        "trajguard": {"layer": _scaled_layer(0.63)},
+        "jlt": {"layers": _scaled_layers((0.47, 0.63, 0.78))},
+        "jbshield": {"layer": _scaled_layer(0.63)},
+    }
+
+    detector_factories: Dict[str, Callable[[], BaseDetector]] = {
         "refusal_direction": lambda: RefusalDirectionDetector(
             runtime=runtime,
-            layer=20,
+            layer=int(method_layer_config["refusal_direction"]["layer"]),
             threshold=0.0,
             vector_path=artifacts_dir / "refusal_direction_vector.npy",
         ),
         "trajguard": lambda: TrajGuardDetector(
             runtime=runtime,
-            layer=20,
+            layer=int(method_layer_config["trajguard"]["layer"]),
             window_size=5,
             consecutive_windows=2,
             threshold=0.20,
@@ -154,18 +177,20 @@ def _build_detector_factories(
         ),
         "jlt": lambda: JailbreakingLeavesTraceDetector(
             runtime=runtime,
-            layers=(15, 20, 25),
+            layers=tuple(method_layer_config["jlt"]["layers"]),
             threshold=0.0,
         ),
         "jbshield": lambda: JBShieldDetector(
             runtime=runtime,
-            layer=20,
+            layer=int(method_layer_config["jbshield"]["layer"]),
             threshold=0.0,
             jailbreak_vector_path=artifacts_dir / "jbshield_jailbreak_vector.npy",
             toxicity_vector_path=artifacts_dir / "jbshield_toxicity_vector.npy",
             use_logistic_calibration=True,
         ),
     }
+
+    return detector_factories, method_layer_config, num_hidden_layers
 
 
 
@@ -175,6 +200,8 @@ def _maybe_prepare_data(args: argparse.Namespace) -> None:
     test_path = args.processed_dir / "test_prompts.jsonl"
 
     if args.prepare_data or not (train_path.exists() and val_path.exists() and test_path.exists()):
+        from src.data_loader import prepare_datasets
+
         stats = prepare_datasets(
             raw_dir=args.raw_dir,
             processed_dir=args.processed_dir,
@@ -228,13 +255,15 @@ def main() -> None:
             max_context_tokens=args.max_context_tokens,
             max_memory_gb=args.max_memory_gb,
             device_map=args.device_map,
+            quantize_4bit=(not args.disable_4bit),
         )
     )
 
-    detector_factories_all = _build_detector_factories(
+    detector_factories_all, method_layer_config, num_hidden_layers = _build_detector_factories(
         runtime=runtime,
         artifacts_dir=args.results_dir / "logs" / "artifacts",
     )
+    print(f"Runtime hidden layers: {num_hidden_layers}")
     requested_methods = [x.strip() for x in args.methods.split(",") if x.strip()]
     detector_factories = {
         name: make for name, make in detector_factories_all.items() if name in requested_methods
@@ -290,6 +319,8 @@ def main() -> None:
                 "adv_train_size": len(adv_train),
                 "adv_val_size": len(adv_val),
                 "ood_test_size": len(ood_test),
+                "num_hidden_layers": num_hidden_layers,
+                "layer_config": method_layer_config.get(method_name, {}),
             }
         )
 
