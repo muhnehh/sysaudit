@@ -158,6 +158,11 @@ Outputs:
 - `results/pilot_gate/logs/pilot_gate_report.json`
 - `results/pilot_gate/logs/pilot_gate_summary.csv`
 
+Checkpoint interpretation note (April 2026):
+
+- The committed pilot report currently reflects a CPU-safe fallback run (`sshleifer/tiny-gpt2`) triggered when CUDA was unavailable for a likely large model.
+- Treat this as pipeline/smoke evidence only, not as target-model validation for `meta-llama/Llama-3.1-8B-Instruct`.
+
 ## Phase 3: Arabic Backup Track
 
 Run a backup benchmark track using Arabic-script prompts discovered in processed splits.
@@ -207,13 +212,20 @@ Cross-dataset protocol is included:
 
 ## Output Artifacts
 
+Minimal retained audit artifacts in this repository:
+
 - `results/metrics.csv`
-- `results/figures/roc_iid.png`
-- `results/figures/roc_ood.png`
-- `results/figures/latency_iid.png`
-- `results/figures/generalization_heatmap.png`
 - `results/logs/benchmark_run.json`
-- `results/logs/artifacts/*.npy` for learned concept vectors
+- `results/pilot_gate/metrics.csv`
+- `results/pilot_gate/logs/benchmark_run.json`
+- `results/pilot_gate/logs/pilot_gate_report.json`
+- `results/pilot_gate/logs/pilot_gate_summary.csv`
+- `results/arabic_backup/logs/arabic_track_report.json`
+
+Generated run artifacts (intentionally git-ignored by default):
+
+- `results/**/figures/*.png`
+- `results/**/logs/artifacts/*.npy`
 
 ## 6GB VRAM Notes
 
