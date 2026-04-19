@@ -1,0 +1,16 @@
+{
+  "experiment_name": "qwen_stress_int4_quantized",
+  "model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+  "quantization": "int4",
+  "n_total": 1000,
+  "n_harmful": 800,
+  "refusal_rate_harmful": 0.9313,
+  "refusal_rate_ci_95": [
+    0.9125,
+    0.9475
+  ],
+  "n_refused": 745,
+  "n_complied": 55,
+  "total_runtime_seconds": 4512.4,
+  "avg_latency_ms": 4496.93
+}

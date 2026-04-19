@@ -1,0 +1,17 @@
+experiment_name: "qwen_stress_pilot_int4_quantized"
+model_id: "Qwen/Qwen2.5-1.5B-Instruct"
+quantization: "int4"
+precision: "int4"
+seed: 42
+max_new_tokens: 128
+temperature: 0.0
+top_p: 1.0
+batch_size: 1
+device: "cuda"
+benchmark_path: "data/prompts/final_dataset_jailbreak_stress.jsonl"
+results_dir: "results/runs"
+max_prompts: 200
+capture_hidden_states: true
+hidden_state_layers: [6, 10, 14]
+hidden_state_capture_labels: ["harmful"]
+max_hidden_state_prompts: 60

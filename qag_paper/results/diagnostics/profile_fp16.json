@@ -1,0 +1,137 @@
+{
+  "timestamp_unix": 1776538714.4921823,
+  "gpu_name": "NVIDIA GeForce RTX 2060 with Max-Q Design",
+  "gpu_compute_capability": "7.5",
+  "torch_version": "2.3.0+cu121",
+  "bitsandbytes_version": "0.43.1",
+  "model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+  "prompt": "Explain in two sentences why reducing food waste matters.",
+  "profiles": {
+    "fp16": {
+      "forward_ms": 69.94,
+      "generate_64tok_ms": 3457.87,
+      "top_cuda_ops": [
+        {
+          "op": "aten::linear",
+          "cuda_time_ms": 15.047,
+          "cpu_time_ms": 13.651,
+          "calls": 197
+        },
+        {
+          "op": "void cutlass::Kernel<cutlass_75_wmma_tensorop_f16_s161616gemm_f16_16x16_128x2_tn_align8>(cutlass_75_wmma_tensorop_f16_s161616gemm_f16_16x16_128x2_tn_align8::Params)",
+          "cuda_time_ms": 14.382,
+          "cpu_time_ms": 0.0,
+          "calls": 197
+        },
+        {
+          "op": "aten::matmul",
+          "cuda_time_ms": 13.537,
+          "cpu_time_ms": 6.899,
+          "calls": 113
+        },
+        {
+          "op": "aten::mm",
+          "cuda_time_ms": 13.537,
+          "cpu_time_ms": 5.635,
+          "calls": 113
+        },
+        {
+          "op": "cudaLaunchKernel",
+          "cuda_time_ms": 2.023,
+          "cpu_time_ms": 18.454,
+          "calls": 1274
+        },
+        {
+          "op": "aten::addmm",
+          "cuda_time_ms": 1.692,
+          "cpu_time_ms": 4.36,
+          "calls": 84
+        },
+        {
+          "op": "aten::mul",
+          "cuda_time_ms": 1.111,
+          "cpu_time_ms": 7.197,
+          "calls": 254
+        },
+        {
+          "op": "aten::copy_",
+          "cuda_time_ms": 0.706,
+          "cpu_time_ms": 4.348,
+          "calls": 171
+        },
+        {
+          "op": "aten::add",
+          "cuda_time_ms": 0.687,
+          "cpu_time_ms": 4.821,
+          "calls": 169
+        },
+        {
+          "op": "aten::_to_copy",
+          "cuda_time_ms": 0.558,
+          "cpu_time_ms": 4.12,
+          "calls": 115
+        },
+        {
+          "op": "aten::to",
+          "cuda_time_ms": 0.545,
+          "cpu_time_ms": 4.336,
+          "calls": 228
+        },
+        {
+          "op": "aten::mean",
+          "cuda_time_ms": 0.531,
+          "cpu_time_ms": 1.96,
+          "calls": 57
+        },
+        {
+          "op": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > >(at::TensorIteratorBase&, at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > const&)::{lambda(int)#1}>(int, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > >(at::TensorIteratorBase&, at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > const&)::{lambda(int)#1})",
+          "cuda_time_ms": 0.438,
+          "cpu_time_ms": 0.0,
+          "calls": 169
+        },
+        {
+          "op": "aten::scaled_dot_product_attention",
+          "cuda_time_ms": 0.428,
+          "cpu_time_ms": 2.668,
+          "calls": 28
+        },
+        {
+          "op": "aten::_scaled_dot_product_efficient_attention",
+          "cuda_time_ms": 0.428,
+          "cpu_time_ms": 2.308,
+          "calls": 28
+        },
+        {
+          "op": "aten::_efficient_attention_forward",
+          "cuda_time_ms": 0.428,
+          "cpu_time_ms": 1.801,
+          "calls": 28
+        },
+        {
+          "op": "aten::index",
+          "cuda_time_ms": 0.329,
+          "cpu_time_ms": 2.269,
+          "calls": 56
+        },
+        {
+          "op": "aten::cat",
+          "cuda_time_ms": 0.325,
+          "cpu_time_ms": 1.981,
+          "calls": 56
+        },
+        {
+          "op": "void at::native::index_elementwise_kernel<128, 4, at::native::gpu_index_kernel<at::native::index_kernel_impl<at::native::OpaqueType<2> >(at::TensorIteratorBase&, c10::ArrayRef<long>, c10::ArrayRef<long>)::{lambda(char*, char const*, long)#1}>(at::TensorIteratorBase&, c10::ArrayRef<long>, c10::ArrayRef<long>, at::native::index_kernel_impl<at::native::OpaqueType<2> >(at::TensorIteratorBase&, c10::ArrayRef<long>, c10::ArrayRef<long>)::{lambda(char*, char const*, long)#1} const&)::{lambda(int)#1}>(long, at::native::gpu_index_kernel<at::native::index_kernel_impl<at::native::OpaqueType<2> >(at::TensorIteratorBase&, c10::ArrayRef<long>, c10::ArrayRef<long>)::{lambda(char*, char const*, long)#1}>(at::TensorIteratorBase&, c10::ArrayRef<long>, c10::ArrayRef<long>, at::native::index_kernel_impl<at::native::OpaqueType<2> >(at::TensorIteratorBase&, c10::ArrayRef<long>, c10::ArrayRef<long>)::{lambda(char*, char const*, long)#1} const&)::{lambda(int)#1})",
+          "cuda_time_ms": 0.32,
+          "cpu_time_ms": 0.0,
+          "calls": 56
+        },
+        {
+          "op": "cudaOccupancyMaxActiveBlocksPerMultiprocessorWithFlags",
+          "cuda_time_ms": 0.302,
+          "cpu_time_ms": 0.25,
+          "calls": 197
+        }
+      ]
+    }
+  }
+}

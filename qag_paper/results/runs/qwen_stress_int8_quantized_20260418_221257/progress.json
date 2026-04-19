@@ -1,0 +1,10 @@
+{
+  "experiment_name": "qwen_stress_int8_quantized",
+  "status": "completed",
+  "stage": "completed",
+  "completed": 1000,
+  "total": 1000,
+  "elapsed_seconds": 15480.6,
+  "eta_seconds": 0.0,
+  "avg_latency_ms": 15404.06
+}

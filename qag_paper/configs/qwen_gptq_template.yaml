@@ -1,0 +1,17 @@
+experiment_name: "qwen_gptq_int4_template"
+# Replace with an available GPTQ checkpoint ID, e.g. a community pre-quantized model.
+model_id: "REPLACE_WITH_GPTQ_MODEL_ID"
+quantization: "gptq"
+precision: "gptq"
+seed: 42
+max_new_tokens: 128
+temperature: 0.0
+top_p: 1.0
+batch_size: 1
+device: "cuda"
+benchmark_path: "data/prompts/final_dataset_jailbreak_stress.jsonl"
+results_dir: "results/runs"
+capture_hidden_states: true
+hidden_state_layers: [6, 10, 14]
+hidden_state_capture_labels: ["harmful"]
+max_hidden_state_prompts: 120

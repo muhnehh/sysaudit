@@ -1,0 +1,137 @@
+{
+  "timestamp_unix": 1776538738.3962379,
+  "gpu_name": "NVIDIA GeForce RTX 2060 with Max-Q Design",
+  "gpu_compute_capability": "7.5",
+  "torch_version": "2.3.0+cu121",
+  "bitsandbytes_version": "0.43.1",
+  "model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+  "prompt": "Explain in two sentences why reducing food waste matters.",
+  "profiles": {
+    "int8": {
+      "forward_ms": 389.63,
+      "generate_64tok_ms": 24124.39,
+      "top_cuda_ops": [
+        {
+          "op": "MatMul8bitLt",
+          "cuda_time_ms": 100.975,
+          "cpu_time_ms": 435.502,
+          "calls": 196
+        },
+        {
+          "op": "turing_int32_i8816gemm_int8_128x128_ldg16_stages_64x1_nt",
+          "cuda_time_ms": 48.664,
+          "cpu_time_ms": 0.0,
+          "calls": 196
+        },
+        {
+          "op": "aten::matmul",
+          "cuda_time_ms": 16.99,
+          "cpu_time_ms": 10.067,
+          "calls": 165
+        },
+        {
+          "op": "aten::mm",
+          "cuda_time_ms": 16.99,
+          "cpu_time_ms": 9.407,
+          "calls": 165
+        },
+        {
+          "op": "aten::linear",
+          "cuda_time_ms": 15.009,
+          "cpu_time_ms": 0.152,
+          "calls": 1
+        },
+        {
+          "op": "void cutlass::Kernel<cutlass_75_wmma_tensorop_f16_s161616gemm_f16_16x16_128x2_tn_align8>(cutlass_75_wmma_tensorop_f16_s161616gemm_f16_16x16_128x2_tn_align8::Params)",
+          "cuda_time_ms": 15.009,
+          "cpu_time_ms": 0.0,
+          "calls": 1
+        },
+        {
+          "op": "aten::_unique2",
+          "cuda_time_ms": 7.591,
+          "cpu_time_ms": 27.307,
+          "calls": 164
+        },
+        {
+          "op": "aten::copy_",
+          "cuda_time_ms": 7.329,
+          "cpu_time_ms": 58.765,
+          "calls": 2004
+        },
+        {
+          "op": "void at_cuda_detail::cub::DeviceRadixSortSingleTileKernel<at_cuda_detail::cub::DeviceRadixSortPolicy<int, at_cuda_detail::cub::NullType, unsigned long long>::Policy800, false, int, at_cuda_detail::cub::NullType, unsigned long long>(int const*, int*, at_cuda_detail::cub::NullType const*, at_cuda_detail::cub::NullType*, unsigned long long, int, int)",
+          "cuda_time_ms": 5.576,
+          "cpu_time_ms": 0.0,
+          "calls": 164
+        },
+        {
+          "op": "aten::mul",
+          "cuda_time_ms": 5.145,
+          "cpu_time_ms": 13.484,
+          "calls": 418
+        },
+        {
+          "op": "void kExtractOutliers<3>(char*, int*, char*, int, int, int, int, int)",
+          "cuda_time_ms": 5.073,
+          "cpu_time_ms": 0.0,
+          "calls": 164
+        },
+        {
+          "op": "aten::fill_",
+          "cuda_time_ms": 4.898,
+          "cpu_time_ms": 46.404,
+          "calls": 2028
+        },
+        {
+          "op": "aten::sort",
+          "cuda_time_ms": 4.055,
+          "cpu_time_ms": 26.615,
+          "calls": 164
+        },
+        {
+          "op": "aten::index",
+          "cuda_time_ms": 4.055,
+          "cpu_time_ms": 20.087,
+          "calls": 548
+        },
+        {
+          "op": "aten::zero_",
+          "cuda_time_ms": 4.044,
+          "cpu_time_ms": 42.49,
+          "calls": 1636
+        },
+        {
+          "op": "void kgetColRowStats<__half, 64, 4, 16, 256, 1>(__half*, float*, float*, int*, float, int, int, int, int)",
+          "cuda_time_ms": 4.033,
+          "cpu_time_ms": 0.0,
+          "calls": 196
+        },
+        {
+          "op": "aten::_to_copy",
+          "cuda_time_ms": 4.004,
+          "cpu_time_ms": 46.295,
+          "calls": 1099
+        },
+        {
+          "op": "aten::zeros",
+          "cuda_time_ms": 3.878,
+          "cpu_time_ms": 58.012,
+          "calls": 1636
+        },
+        {
+          "op": "aten::to",
+          "cuda_time_ms": 3.8,
+          "cpu_time_ms": 47.81,
+          "calls": 2364
+        },
+        {
+          "op": "cudaLaunchKernel",
+          "cuda_time_ms": 3.626,
+          "cpu_time_ms": 114.52,
+          "calls": 7680
+        }
+      ]
+    }
+  }
+}

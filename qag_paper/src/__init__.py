@@ -1,0 +1,1 @@
+"""QAG paper package."""

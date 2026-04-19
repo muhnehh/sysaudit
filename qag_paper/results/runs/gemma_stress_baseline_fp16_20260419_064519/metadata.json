@@ -1,0 +1,37 @@
+{
+  "config": {
+    "experiment_name": "gemma_stress_baseline_fp16",
+    "model_id": "google/gemma-2-2b-it",
+    "quantization": null,
+    "precision": "fp16",
+    "seed": 42,
+    "max_new_tokens": 128,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "batch_size": 1,
+    "device": "cuda",
+    "benchmark_path": "data/prompts/final_dataset_jailbreak_stress.jsonl",
+    "results_dir": "results/runs",
+    "capture_hidden_states": true,
+    "hidden_state_layers": [
+      6,
+      10,
+      14
+    ],
+    "hidden_state_capture_labels": [
+      "harmful"
+    ],
+    "max_hidden_state_prompts": 120
+  },
+  "hardware": {
+    "timestamp": "2026-04-19T06:45:19.557334",
+    "python_version": "3.12.3",
+    "torch_version": "2.3.0+cu121",
+    "cuda_available": true,
+    "gpu_name": "NVIDIA GeForce RTX 2060 with Max-Q Design",
+    "gpu_vram_gb": 6.44,
+    "cuda_version": "12.1",
+    "driver_version": "591.74"
+  },
+  "git_hash": "cbdcf8c"
+}

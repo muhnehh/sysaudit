@@ -1,0 +1,10 @@
+{
+  "experiment_name": "gemma_stress_baseline_fp16",
+  "status": "running",
+  "stage": "generating",
+  "completed": 298,
+  "total": 1000,
+  "elapsed_seconds": 8270.6,
+  "eta_seconds": 19483.0,
+  "avg_latency_ms": 27732.22
+}

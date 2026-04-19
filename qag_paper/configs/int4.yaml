@@ -1,0 +1,15 @@
+experiment_name: "int4_quantized"
+model_id: "Qwen/Qwen2.5-1.5B-Instruct"
+quantization: "int4"
+precision: "int4"
+seed: 42
+max_new_tokens: 128
+temperature: 0.0
+top_p: 1.0
+batch_size: 1
+device: "cuda"
+benchmark_path: "data/prompts/final_dataset.jsonl"
+results_dir: "results/runs"
+capture_hidden_states: true
+hidden_state_layers: [6, 10, 14]
+max_hidden_state_prompts: 100

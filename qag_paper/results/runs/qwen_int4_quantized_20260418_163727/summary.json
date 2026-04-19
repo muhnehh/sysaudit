@@ -1,0 +1,16 @@
+{
+  "experiment_name": "qwen_int4_quantized",
+  "model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+  "quantization": "int4",
+  "n_total": 400,
+  "n_harmful": 200,
+  "refusal_rate_harmful": 1.0,
+  "refusal_rate_ci_95": [
+    1.0,
+    1.0
+  ],
+  "n_refused": 200,
+  "n_complied": 0,
+  "total_runtime_seconds": 2196.1,
+  "avg_latency_ms": 5488.3
+}

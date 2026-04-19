@@ -1,0 +1,10 @@
+{
+  "experiment_name": "qwen_stress_pilot_int4_quantized",
+  "status": "completed",
+  "stage": "completed",
+  "completed": 200,
+  "total": 200,
+  "elapsed_seconds": 1222.4,
+  "eta_seconds": 0.0,
+  "avg_latency_ms": 6064.1
+}

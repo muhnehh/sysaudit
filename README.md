@@ -1,4 +1,24 @@
-# Systematic Audit of Prefill Jailbreak Detection Methods
+# Quantization Alignment Gap Under Jailbreak Stress
+
+Primary paper track title:
+
+- Quantization Alignment Gap (QAG): Stress-Testing Refusal Safety Under Quantization
+
+## Repository Update (April 2026)
+
+The active research direction in this repository is now the QAG paper workflow in `qag_paper/`.
+This includes:
+
+- fp16 vs INT8 vs INT4 refusal-alignment measurements
+- stress-transform evaluations (base64, prefix injection, roleplay)
+- pairwise significance testing and variant-level gap attribution
+- run orchestration for Qwen and Gemma stress replication
+
+Use `qag_paper/README.md` as the main entrypoint for the current paper pipeline.
+
+---
+
+Legacy benchmark context is retained below.
 
 This repository benchmarks four published jailbreak detection methods under one evaluation pipeline:
 

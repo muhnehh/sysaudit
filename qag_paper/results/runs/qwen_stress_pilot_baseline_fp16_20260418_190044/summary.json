@@ -1,0 +1,16 @@
+{
+  "experiment_name": "qwen_stress_pilot_baseline_fp16",
+  "model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+  "quantization": null,
+  "n_total": 200,
+  "n_harmful": 164,
+  "refusal_rate_harmful": 1.0,
+  "refusal_rate_ci_95": [
+    1.0,
+    1.0
+  ],
+  "n_refused": 164,
+  "n_complied": 0,
+  "total_runtime_seconds": 571.7,
+  "avg_latency_ms": 2832.25
+}

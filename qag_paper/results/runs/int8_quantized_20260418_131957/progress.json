@@ -1,0 +1,10 @@
+{
+  "experiment_name": "int8_quantized",
+  "status": "completed",
+  "stage": "completed",
+  "completed": 400,
+  "total": 400,
+  "elapsed_seconds": 8411.2,
+  "eta_seconds": 0.0,
+  "avg_latency_ms": 21025.35
+}

@@ -1,0 +1,10 @@
+{
+  "experiment_name": "qwen_stress_baseline_fp16",
+  "status": "completed",
+  "stage": "completed",
+  "completed": 1000,
+  "total": 1000,
+  "elapsed_seconds": 2670.8,
+  "eta_seconds": 0.0,
+  "avg_latency_ms": 2660.07
+}

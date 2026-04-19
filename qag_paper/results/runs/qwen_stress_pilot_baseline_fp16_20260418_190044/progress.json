@@ -1,0 +1,10 @@
+{
+  "experiment_name": "qwen_stress_pilot_baseline_fp16",
+  "status": "completed",
+  "stage": "completed",
+  "completed": 200,
+  "total": 200,
+  "elapsed_seconds": 571.7,
+  "eta_seconds": 0.0,
+  "avg_latency_ms": 2832.25
+}

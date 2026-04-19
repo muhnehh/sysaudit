@@ -1,0 +1,137 @@
+{
+  "timestamp_unix": 1776538785.4598505,
+  "gpu_name": "NVIDIA GeForce RTX 2060 with Max-Q Design",
+  "gpu_compute_capability": "7.5",
+  "torch_version": "2.3.0+cu121",
+  "bitsandbytes_version": "0.43.1",
+  "model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+  "prompt": "Explain in two sentences why reducing food waste matters.",
+  "profiles": {
+    "int4": {
+      "forward_ms": 91.97,
+      "generate_64tok_ms": 5211.29,
+      "top_cuda_ops": [
+        {
+          "op": "MatMul4Bit",
+          "cuda_time_ms": 63.509,
+          "cpu_time_ms": 57.465,
+          "calls": 196
+        },
+        {
+          "op": "void kDequantizeBlockwise<__half, 512, 64, 8, 2>(float*, unsigned char*, float*, __half*, int, int)",
+          "cuda_time_ms": 39.221,
+          "cpu_time_ms": 0.0,
+          "calls": 196
+        },
+        {
+          "op": "aten::linear",
+          "cuda_time_ms": 19.121,
+          "cpu_time_ms": 13.629,
+          "calls": 197
+        },
+        {
+          "op": "void cutlass::Kernel<cutlass_75_wmma_tensorop_f16_s161616gemm_f16_16x16_128x2_tn_align8>(cutlass_75_wmma_tensorop_f16_s161616gemm_f16_16x16_128x2_tn_align8::Params)",
+          "cuda_time_ms": 17.968,
+          "cpu_time_ms": 0.0,
+          "calls": 197
+        },
+        {
+          "op": "aten::matmul",
+          "cuda_time_ms": 16.855,
+          "cpu_time_ms": 7.191,
+          "calls": 113
+        },
+        {
+          "op": "aten::mm",
+          "cuda_time_ms": 16.855,
+          "cpu_time_ms": 5.824,
+          "calls": 113
+        },
+        {
+          "op": "cudaLaunchKernel",
+          "cuda_time_ms": 5.482,
+          "cpu_time_ms": 28.996,
+          "calls": 1862
+        },
+        {
+          "op": "cudaPeekAtLastError",
+          "cuda_time_ms": 3.094,
+          "cpu_time_ms": 0.0,
+          "calls": 392
+        },
+        {
+          "op": "aten::addmm",
+          "cuda_time_ms": 2.605,
+          "cpu_time_ms": 4.726,
+          "calls": 84
+        },
+        {
+          "op": "aten::mul",
+          "cuda_time_ms": 2.037,
+          "cpu_time_ms": 7.27,
+          "calls": 254
+        },
+        {
+          "op": "aten::copy_",
+          "cuda_time_ms": 1.435,
+          "cpu_time_ms": 4.633,
+          "calls": 171
+        },
+        {
+          "op": "aten::add_",
+          "cuda_time_ms": 1.296,
+          "cpu_time_ms": 5.325,
+          "calls": 196
+        },
+        {
+          "op": "void kDequantizeBlockwise<float, 512, 64, 8, 0>(float*, unsigned char*, float*, float*, int, int)",
+          "cuda_time_ms": 1.061,
+          "cpu_time_ms": 0.0,
+          "calls": 196
+        },
+        {
+          "op": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::CUDAFunctor_add<float> >(at::TensorIteratorBase&, at::native::CUDAFunctor_add<float> const&)::{lambda(int)#1}>(int, at::native::gpu_kernel_impl_nocast<at::native::CUDAFunctor_add<float> >(at::TensorIteratorBase&, at::native::CUDAFunctor_add<float> const&)::{lambda(int)#1})",
+          "cuda_time_ms": 1.008,
+          "cpu_time_ms": 0.0,
+          "calls": 196
+        },
+        {
+          "op": "aten::rsqrt",
+          "cuda_time_ms": 0.959,
+          "cpu_time_ms": 1.556,
+          "calls": 57
+        },
+        {
+          "op": "aten::_to_copy",
+          "cuda_time_ms": 0.747,
+          "cpu_time_ms": 4.672,
+          "calls": 115
+        },
+        {
+          "op": "cudaOccupancyMaxActiveBlocksPerMultiprocessorWithFlags",
+          "cuda_time_ms": 0.74,
+          "cpu_time_ms": 0.315,
+          "calls": 197
+        },
+        {
+          "op": "aten::to",
+          "cuda_time_ms": 0.736,
+          "cpu_time_ms": 4.869,
+          "calls": 1496
+        },
+        {
+          "op": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > >(at::TensorIteratorBase&, at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > const&)::{lambda(int)#1}>(int, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > >(at::TensorIteratorBase&, at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > const&)::{lambda(int)#1})",
+          "cuda_time_ms": 0.735,
+          "cpu_time_ms": 0.0,
+          "calls": 169
+        },
+        {
+          "op": "aten::reshape",
+          "cuda_time_ms": 0.688,
+          "cpu_time_ms": 3.359,
+          "calls": 310
+        }
+      ]
+    }
+  }
+}
